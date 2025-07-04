@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket User List</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        #userList { list-style: none; padding: 0; }
+        .user-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .online-dot { width: 10px; height: 10px; background-color: green; border-radius: 50%; margin-right: 10px; }
+        .username { flex-grow: 1; }
+        .stream-btn { background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .stream-btn:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>Connected Users</h1>
+    <ul id="userList"></ul>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:3000');
+        let currentUsername = '';
+
+        // Get or prompt for username with better validation
+        function getUsername() {
+            let username = localStorage.getItem('username');
+            while (!username || username.trim() === '') {
+                username = prompt('Please enter your username (cannot be empty):');
+                if (username === null) {
+                    // User clicked cancel, redirect to home
+                    window.location.href = '/';
+                    return null;
+                }
+            }
+            localStorage.setItem('username', username);
+            return username;
+        }
+
+        currentUsername = getUsername();
+        console.log("Current username set to:", currentUsername);
+
+        if (!currentUsername) {
+            // Exit if no username was provided
+            window.location.href = '/';
+        }
+        
+        socket.onopen = () => {
+            console.log('WebSocket connected, registering user:', currentUsername);
+            socket.send(JSON.stringify({
+                type: 'set-username',
+                username: currentUsername
+            }));
+            
+            socket.send(JSON.stringify({
+                type: 'get-user-list'
+            }));
+        };
+        
+        socket.onmessage = (event) => {
+            console.log('Raw message:', event.data);
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Parsed message:', data);
+                
+                if (data.type === 'user-list') {
+                    console.log('User list received:', data.users);
+                    updateUserList(data.users);
+                }
+            } catch (error) {
+                console.error('Error parsing message:', error);
+            }
+        };
+        
+        function updateUserList(users) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+
+            if (!users || users.length === 0) {
+                userList.innerHTML = '<li>No other users connected</li>';
+                return;
+            }
+
+            users.forEach(user => {
+                // user is now always an object: { username, page }
+                const username = user.username;
+                const page = user.page || 'index.html';
+                const isCurrentUser = username === currentUsername;
+
+                const li = document.createElement('li');
+                li.className = 'user-item';
+
+                let buttonHtml = '';
+                if (isCurrentUser) {
+                    buttonHtml = `<button class="stream-btn" onclick="startStream('${username}')">Start Stream</button>`;
+                } else if (page === 'stream.html') {
+                    buttonHtml = `<button class="stream-btn" onclick="watchStream('${username}')">Watch Stream</button>`;
+                }
+
+                li.innerHTML = `
+                    <div class="online-dot"></div>
+                    <span class="username">${username}${page === 'stream.html' ? ' (Streaming)' : ''}</span>
+                    ${buttonHtml}
+                `;
+
+                userList.appendChild(li);
+            });
+        }
+
+        window.startStream = function(username) {
+            if (username === currentUsername) {
+                window.location.href = `/static/start.html?username=${encodeURIComponent(username)}`;
+            }
+        };
+
+        window.watchStream = function(username) {
+            window.location.href = `/static/stream.html?username=${encodeURIComponent(username)}`;
+        };
+
+        // Handle connection errors
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+</html>

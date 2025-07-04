@@ -1,0 +1,16 @@
+# Ignore Python venv
+venv/
+__pycache__/
+*.pyc
+
+# Ignore Node.js modules
+node_modules/
+
+# Ignore video output
+video/
+
+# Ignore OS or editor-specific junk
+.DS_Store
+.env
+*.log
+

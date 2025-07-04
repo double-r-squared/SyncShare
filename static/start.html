@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Start Stream</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        #streamForm { display: flex; flex-direction: column; gap: 15px; }
+        input, button { padding: 10px; font-size: 16px; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>Start Streaming</h1>
+    <form id="streamForm">
+        <input type="text" id="streamUrl" placeholder="Enter video URL" required>
+        <button type="submit">Start Stream</button>
+    </form>
+
+    <script>
+        // Get username from localStorage or URL params
+        let username = localStorage.getItem('username') || 
+                      new URLSearchParams(window.location.search).get('username');
+        
+        if (!username) {
+            // If no username found, redirect to home
+            window.location.href = '/';
+        }
+
+        const socket = new WebSocket('ws://localhost:3000');
+
+        // Notify server about navigation
+        socket.onopen = () => {
+            socket.send(JSON.stringify({
+                type: 'navigation',
+                page: 'start.html',
+                username: username
+            }));
+        };
+
+        socket.onmessage = (event) => {
+            console.log('Raw message:', event.data);
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Parsed message:', data);
+            } catch (error) {
+                console.error('Error parsing message:', error);
+            }
+        };
+
+        // Handle form submission
+        document.getElementById('streamForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('streamUrl').value;
+            //Go to stream.html first
+            window.location.href = `/static/stream.html?username=${encodeURIComponent(username)}&url=${encodeURIComponent(url)}`;
+
+            try {
+                const response = await fetch('/start-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, url })
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Failed to start stream');
+            }
+        });
+    </script>
+</body>
+</html>
