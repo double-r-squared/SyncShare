@@ -17,7 +17,7 @@
     <ul id="userList"></ul>
 
     <script>
-        const socket = new WebSocket('ws://localhost:3000');
+        const socket = new WebSocket(`ws://${window.location.hostname}:3000`);
         let currentUsername = '';
 
         // Get or prompt for username with better validation

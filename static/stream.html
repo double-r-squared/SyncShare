@@ -70,8 +70,7 @@
         const username = params.get('username'); // the target streamer's name
         const localUsername = localStorage.getItem('username');
         const isStreamer = username === localUsername;
-        const streamUrl = params.get('url');
-        const socket = new WebSocket('ws://localhost:3000');
+        const socket = new WebSocket(`ws://${window.location.hostname}:3000`);
 
         if (!username) {
             // If no username found, redirect to home
@@ -124,9 +123,6 @@
             }
         };
 
-        // Debug logging
-        console.log('Starting stream for:', { username, streamUrl });
-                
         // Start checking for the video
         checkForVideo();
         

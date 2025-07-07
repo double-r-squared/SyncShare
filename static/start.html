@@ -27,7 +27,8 @@
             window.location.href = '/';
         }
 
-        const socket = new WebSocket('ws://localhost:3000');
+        // FIX: Use correct hostname for WebSocket
+        const socket = new WebSocket(`ws://${window.location.hostname}:3000`);
 
         // Notify server about navigation
         socket.onopen = () => {
@@ -52,16 +53,22 @@
         document.getElementById('streamForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const url = document.getElementById('streamUrl').value;
-            //Go to stream.html first
-            window.location.href = `/static/stream.html?username=${encodeURIComponent(username)}&url=${encodeURIComponent(url)}`;
 
             try {
+                // Wait for the stream to start before redirecting
                 const response = await fetch('/start-stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, url })
                 });
 
+                if (!response.ok) {
+                    const err = await response.text();
+                    throw new Error(err || 'Failed to start stream');
+                }
+
+                // Only redirect after stream is started
+                window.location.href = `/static/stream.html?username=${encodeURIComponent(username)}}`;
             } catch (error) {
                 console.error('Error:', error);
                 alert(error.message || 'Failed to start stream');
